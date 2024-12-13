@@ -4,7 +4,7 @@ import DownloadApp from "@/modules/client/views/DownloadApp.vue";
 import ProductsPage from "@/modules/client/views/ProductsPage.vue";
 export default [
     {
-        path: "/",
+        path: "/pwa-cm/",
         name: 'publico',
         redirect: '/inicio',
         component: () => import("../../layouts/PublicLayout.vue"),

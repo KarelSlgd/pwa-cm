@@ -36,15 +36,15 @@ export default {
             const token = utils.getToken();
 
             if (!token) {
-                this.$router.push({ path: '/' });
+                this.$router.push("/");
                 return;
             }
 
             const role = utils.getRole();
             if (role.toString().toLowerCase() === "admin") {
-                this.$router.push({ path: '/' });
+                this.$router.push("/admin");
             } else {
-                this.$router.push({ path: '/' });
+                this.$router.push("/");
             }
         },
     },
