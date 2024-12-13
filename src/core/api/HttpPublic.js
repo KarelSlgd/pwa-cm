@@ -1,7 +1,7 @@
 import axios from "axios";
 import router from "@/router";
 import store from "@/store/store";
-const SERVER_URL = "http://localhost:8080/api";
+const SERVER_URL = "https://www.energiasustentable.study:8443/api";
 const client = axios.create({
   baseURL: SERVER_URL,
   timeout: 20000,

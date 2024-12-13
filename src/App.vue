@@ -1,12 +1,14 @@
 <template>
   <div class="main">
-    <router-view />
+    <keep-alive>
+      <router-view />
+    </keep-alive>
   </div>
 </template>
 
 <script>
-import { sendPendingRequests as sendPublicPendingRequests } from '../src/core/api/HttpPublic';
-import { sendPendingRequests as sendPrivatePendingRequests } from '../src/core/api/HttpPrivate';
+import { sendPendingRequests as sendPublicPendingRequests } from "../src/core/api/HttpPublic";
+import { sendPendingRequests as sendPrivatePendingRequests } from "../src/core/api/HttpPrivate";
 
 export default {
   data() {
@@ -23,10 +25,14 @@ export default {
             badge: "src/assets/images/grillo.png",
           });
         } else {
-          console.warn("No se pueden mostrar notificaciones nativas: permisos no otorgados.");
+          console.warn(
+            "No se pueden mostrar notificaciones nativas: permisos no otorgados."
+          );
         }
       } else {
-        console.warn("El navegador no soporta notificaciones o service workers.");
+        console.warn(
+          "El navegador no soporta notificaciones o service workers."
+        );
       }
     },
 
@@ -43,7 +49,9 @@ export default {
         );
       } else {
         // Mostrar toast si no hay permisos para notificaciones nativas
-        this.$toast.success("Conexión restaurada. Procesando peticiones pendientes...");
+        this.$toast.success(
+          "Conexión restaurada. Procesando peticiones pendientes..."
+        );
       }
     },
 
