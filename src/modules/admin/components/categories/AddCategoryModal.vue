@@ -82,24 +82,18 @@ export default {
       }
 
       if (!navigator.onLine) {
-        // Sin conexión: guarda la solicitud en IndexedDB
-        const request = {
-          _id: new Date().toISOString(), // ID único basado en el timestamp
+        // Sin conexión: cerrar modal y agregar a solicitudes pendientes
+        this.pendingRequests.push({
           categoryName: this.categoryName,
           categoryDescription: this.categoryDescription,
-        };
-        try {
-          await dbPendingRequests.put(request);
-          this.$toast.info(
-            "Sin conexión. La categoría se registrará automáticamente cuando vuelva la conexión."
-          );
-        } catch (error) {
-          console.error("Error al guardar la solicitud pendiente:", error);
-        }
+        });
+        this.$toast.info(
+          "Sin conexión. La categoría se registrará automáticamente cuando vuelva la conexión."
+        );
         this.closeModal();
         this.isLoading = false;
       } else {
-        // Con conexión: intenta enviar la solicitud
+        // Con conexión: intentar enviar la solicitud
         this.addCategory();
       }
     },
@@ -125,38 +119,23 @@ export default {
       }
     },
     async processPendingRequests() {
-      let hasProcessedRequests = false;
-
-      try {
-        const allDocs = await dbPendingRequests.allDocs({ include_docs: true });
-        for (const row of allDocs.rows) {
-          const request = row.doc;
-          try {
-            await AdminServices.addCategory(
-              request.categoryName,
-              request.categoryDescription
-            );
-            this.$toast.success(
-              `Categoría "${request.categoryName}" registrada exitosamente.`
-            );
-            // Elimina la solicitud procesada de IndexedDB
-            await dbPendingRequests.remove(request._id);
-            hasProcessedRequests = true;
-          } catch (error) {
-            this.$toast.error(
-              `Error al registrar la categoría "${request.categoryName}".`
-            );
-          }
+      for (const request of this.pendingRequests) {
+        try {
+          await AdminServices.addCategory(
+            request.categoryName,
+            request.categoryDescription
+          );
+          this.$toast.success(
+            `Categoría "${request.categoryName}" registrada exitosamente.`
+          );
+        } catch (error) {
+          this.$toast.error(
+            `Error al registrar la categoría "${request.categoryName}".`
+          );
         }
-
-        // Emite el evento de actualización si al menos una solicitud fue procesada
-        if (hasProcessedRequests) {
-          this.$emit("refresh");
-        }
-      } catch (error) {
-        console.error("Error al procesar solicitudes pendientes:", error);
       }
-    }
+      this.pendingRequests = [];
+    },
   },
   watch: {
     visible(newVal) {

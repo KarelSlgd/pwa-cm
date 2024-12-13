@@ -43,7 +43,7 @@ client.interceptors.response.use(
 );
 
 // Función para manejar conflictos en PouchDB
-const handleConflict = async (docId, newDoc) => {
+const handleConflict = async ( docId, newDoc) => {
   try {
     const existingDoc = await dbPeticiones.get(docId);
     const mergedDoc = { ...existingDoc, ...newDoc }; // Fusión de datos
@@ -68,9 +68,7 @@ const cacheRequest = async (method, endPoint, data = null, config = {}) => {
     console.log(`Petición ${method.toUpperCase()} almacenada en caché.`);
   } catch (error) {
     if (error.status === 409) {
-      console.warn(
-        "Conflicto detectado al guardar la petición. Resolviendo..."
-      );
+      console.warn("Conflicto detectado al guardar la petición. Resolviendo...");
       await handleConflict(request._id, request);
     } else {
       console.error("Error al guardar la petición en caché:", error);
@@ -84,14 +82,12 @@ export const sendPendingRequests = async () => {
     const requests = await dbPeticiones.allDocs({ include_docs: true });
     const pendingRequests = requests.rows.map((row) => row.doc);
 
-    console.log(
-      `Reintentando ${pendingRequests.length} peticiones pendientes...`
-    );
+    console.log(`Reintentando ${pendingRequests.length} peticiones pendientes...`);
 
     for (const request of pendingRequests) {
       try {
         const { method, endPoint, data, config } = request;
-        console.log(method);
+        console.log(method)
         console.log(`Procesando petición: ${method.toUpperCase()} ${endPoint}`);
         let response;
         if (method === "get" || method === "delete") {
@@ -127,138 +123,38 @@ const handleGetRequest = async (endPoint, config) => {
     const fetch = {
       _id: endPoint,
       response: response.data,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString(), // Agregar un timestamp
     };
 
     try {
-      // Guarda o actualiza la respuesta en el caché
       await dbFetchesGet.put(fetch);
     } catch (error) {
       if (error.status === 409) {
-        // Actualiza el caché si ya existe un documento con el mismo ID
-        const existingCache = await dbFetchesGet.get(endPoint);
-        await dbFetchesGet.put({
-          ...existingCache,
-          response: response.data,
-          timestamp: new Date().toISOString(),
-        });
+        await handleConflict( fetch._id, fetch);
       } else {
         console.error("Error al guardar la respuesta en caché:", error);
       }
     }
     return response;
   } catch (error) {
-    // Manejo de modo offline
     if (!navigator.onLine) {
       try {
         const fetch = await dbFetchesGet.get(endPoint);
-        console.log("Respuesta obtenida del caché:", fetch.response);
+        console.log("Respuesta obtenida de la caché:", fetch.response);
 
-        return { data: fetch.response }; // Devuelve los datos almacenados
+        return { data: fetch.response };
       } catch (fetchError) {
         if (fetchError.status === 404) {
           console.error("No se encontró la respuesta en caché:", fetchError);
         } else {
-          console.error("Error al obtener la respuesta del caché:", fetchError);
+          console.error(
+            "Error al obtener la respuesta de la caché:",
+            fetchError
+          );
         }
       }
     }
     return Promise.reject(error);
-  }
-};
-
-const updateCacheAfterModification = async (endPoint, newData) => {
-  try {
-    // Obtener el caché existente
-    const existingCache = await dbFetchesGet.get(endPoint);
-
-    if (Array.isArray(existingCache.response.data)) {
-      // Actualizar el elemento si ya existe
-      const updatedResponse = existingCache.response.data.map((item) =>
-        item.idCategory === newData.idCategory ? { ...item, ...newData } : item
-      );
-
-      // Verificar si el elemento no existe, y agregarlo en ese caso
-      const exists = existingCache.response.data.some(
-        (item) => item.idCategory === newData.idCategory
-      );
-      if (!exists) {
-        updatedResponse.push(newData);
-      }
-
-      // Guardar la respuesta actualizada en IndexedDB
-      await dbFetchesGet.put({
-        ...existingCache,
-        response: { ...existingCache.response, data: updatedResponse },
-        timestamp: new Date().toISOString(),
-      });
-      console.log("Caché actualizado correctamente en IndexedDB.");
-    } else {
-      console.warn("Formato no esperado en el caché, sobrescribiendo...");
-      await dbFetchesGet.put({
-        ...existingCache,
-        response: { data: [newData] },
-        timestamp: new Date().toISOString(),
-      });
-    }
-  } catch (error) {
-    if (error.status === 404) {
-      // Crear un nuevo caché si no existe
-      await dbFetchesGet.put({
-        _id: endPoint,
-        response: { data: [newData] },
-        timestamp: new Date().toISOString(),
-      });
-      console.log("Caché creado con nuevo dato.");
-    } else {
-      console.error("Error al actualizar o crear caché en IndexedDB:", error);
-    }
-  }
-};
-
-const updateCacheOffline = async (endPoint, newData) => {
-  try {
-    const existingCache = await dbFetchesGet.get(endPoint);
-
-    if (Array.isArray(existingCache.response.data)) {
-      // Actualizar o agregar el nuevo dato basado en idCategory
-      const updatedResponse = existingCache.response.data.map((item) =>
-        item.idCategory === newData.idCategory ? { ...item, ...newData } : item
-      );
-
-      const exists = existingCache.response.data.some(
-        (item) => item.idCategory === newData.idCategory
-      );
-      if (!exists) {
-        updatedResponse.push(newData);
-      }
-
-      await dbFetchesGet.put({
-        ...existingCache,
-        response: { ...existingCache.response, data: updatedResponse },
-        timestamp: new Date().toISOString(),
-      });
-      console.log("Caché actualizado en modo offline.");
-    } else {
-      console.warn("Formato no esperado en la respuesta, sobrescribiendo...");
-      await dbFetchesGet.put({
-        ...existingCache,
-        response: { data: [newData] },
-        timestamp: new Date().toISOString(),
-      });
-    }
-  } catch (error) {
-    if (error.status === 404) {
-      // Crear un nuevo caché si no existe
-      await dbFetchesGet.put({
-        _id: endPoint,
-        response: { data: [newData] },
-        timestamp: new Date().toISOString(),
-      });
-      console.log("Nuevo caché creado en modo offline.");
-    } else {
-      console.error("Error al actualizar el caché en modo offline:", error);
-    }
   }
 };
 
@@ -269,40 +165,26 @@ export default {
   },
   post: async function (endPoint, object, config) {
     try {
-      const response = await client.post(endPoint, object, config || {});
-
-      if (response && response.data) {
-        // Actualizar el caché con el nuevo dato
-        await updateCacheAfterModification(endPoint, response.data);
-      }
-
-      return response;
+      return await client.post(endPoint, object, config || {});
     } catch (error) {
       if (!navigator.onLine) {
-        // Si está offline, actualizar el caché directamente
-        await updateCacheOffline(endPoint, object);
-        console.log("Caché actualizado en modo offline tras POST.");
-        return Promise.resolve({ data: object });
+
+        await cacheRequest("post", endPoint, object, config);
+        console.log("Petición POST almacenada para reintentar más tarde.");
+        return Promise.resolve({ data: null });
       }
       return Promise.reject(error);
     }
+
   },
   put: async function (endPoint, object, config) {
     try {
-      const response = await client.put(endPoint, object, config || {});
-
-      if (response && response.data) {
-        // Actualizar el caché con el dato modificado
-        await updateCacheAfterModification(endPoint, response.data);
-      }
-
-      return response;
+      return await client.put(endPoint, object, config || {});
     } catch (error) {
       if (!navigator.onLine) {
-        // Si está offline, actualizar el caché directamente
-        await updateCacheOffline(endPoint, object);
-        console.log("Caché actualizado en modo offline tras PUT.");
-        return Promise.resolve({ data: object });
+        await cacheRequest("put", endPoint, object, config);
+        console.log("Petición PUT almacenada para reintentar más tarde.");
+        return Promise.resolve({ data: null });
       }
       return Promise.reject(error);
     }

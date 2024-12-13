@@ -57,14 +57,16 @@ export default defineConfig(({ mode }) => {
       alias: [
         {
           find: /^primevue\/((?!config|resources).*)*$/,
-          replacement: "primevue/$1/$1.umd.js",
+          replacement: 'primevue/$1/$1.umd.js',
         },
 
         {
           find: /^@\/(.*)/,
           replacement: resolve(__dirname, "src/$1"),
         },
-      ],
+
+
+      ]
     },
     server: {
       port: 4200,
