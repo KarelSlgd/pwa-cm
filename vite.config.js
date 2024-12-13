@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   const isDevelopment = mode === "development";
 
   return {
-    base: "/pwa-cm/",
+    base: "/",
     plugins: [
       vue(),
       VitePWA({
@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => {
               purpose: "any",
             },
           ],
-          start_url: "/pwa-cm/admin225ij5a2o1uzptgeo9g",
+          start_url: "/",
           display: "standalone",
           background_color: "#ffffff",
           theme_color: "#000000",

@@ -6,7 +6,7 @@ export default [
     {
         path: "/",
         name: 'publico',
-        redirect: '/pwa-cm/inicio',
+        redirect: '/inicio',
         component: () => import("../../layouts/PublicLayout.vue"),
         meta: {
             title: "Cliente",

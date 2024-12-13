@@ -12,7 +12,7 @@ export default [
   {
     path: "/admin",
     name: "admin",
-    redirect: "/pwa-cm/admin/dashboard",
+    redirect: "/admin/dashboard",
     component: () => import("../../layouts/AdminLayout.vue"),
     meta: {
       title: "Admin",
