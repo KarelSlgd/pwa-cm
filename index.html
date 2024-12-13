@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <link rel="icon" href="./favicon.ico" />
+    <title>CrocketMart</title>
+  </head>
+
+  <body>
+    <noscript>
+      <strong
+        >We're sorry but CrocketMart doesn't work properly without JavaScript
+        enabled. Please enable it to continue.</strong
+      >
+    </noscript>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+    <!-- Cargar PouchDB -->
+    <script src="https://cdn.jsdelivr.net/npm/pouchdb@9.0.0/dist/pouchdb.min.js"></script>
+    <script>
+      try {
+        const dbPeticiones = new PouchDB("peticiones");
+        const dbFetchesGet = new PouchDB("fetchesGet");
+        window.dbPeticiones = dbPeticiones;
+        window.dbFetchesGet = dbFetchesGet;
+        console.log("Bases de datos PouchDB inicializadas correctamente.");
+      } catch (error) {
+        console.error(
+          "Error al inicializar las bases de datos PouchDB:",
+          error
+        );
+      }
+    </script>
+  </body>
+</html>

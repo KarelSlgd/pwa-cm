@@ -1,0 +1,34 @@
+{
+  "name": "crochet_mart",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "dependencies": {
+    "@mdi/js": "^7.4.47",
+    "axios": "^1.6.7",
+    "core-js": "^3.8.3",
+    "crochet_mart": "file:",
+    "jwt-decode": "^3.1.2",
+    "primeflex": "^3.3.1",
+    "primeicons": "^5.0.0",
+    "primevue": "^2.8.0",
+    "register-service-worker": "^1.7.2",
+    "vue": "^2.6.14",
+    "vue-material-design-icons": "^5.3.1",
+    "vue-router": "^2.8.1",
+    "vuex": "^3.6.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-legacy": "^2.0.0",
+    "@vitejs/plugin-vue2": "^1.1.2",
+    "autoprefixer": "^10.4.18",
+    "deepmerge": "^4.3.1",
+    "terser": "^5.14.2",
+    "vite": "^3.0.0",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}

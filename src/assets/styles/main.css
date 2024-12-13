@@ -1,0 +1,63 @@
+body {
+  padding: 0px;
+  margin: 0px;
+}
+.p-button {
+  background-color: #252525 !important;
+  border-color: #252525 !important;
+  color: #ffffff !important;
+  display: flex;
+  border: none;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold !important;
+  border-radius: 6px !important;
+}
+
+.p-button:hover {
+  background-color: #353535 !important;
+  border-color: #353535 !important;
+  color: #ffffff !important;
+}
+
+.p-button-secondary {
+  background-color: #ffffff !important;
+  border-color: #252525 !important;
+  color: #252525 !important;
+  width: 100%;
+  display: flex;
+  border: none;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold !important;
+}
+
+.p-button-secondary:hover {
+  background-color: #585858 !important;
+  border-color: #585858 !important;
+  color: #ffffff !important;
+}
+
+.p-galleria-thumbnail-container {
+  background-color: transparent !important;
+}
+
+.p-galleria-thumbnail-prev-icon {
+  color: #585858 !important;
+}
+
+.p-galleria-thumbnail-next-icon {
+  color: #585858 !important;
+}
+
+.p-rating .p-rating-icon.pi-star-fill {
+  color: #252525 !important;
+}
+
+.p-breadcrumb {
+  border-color: #ffffff !important;
+}
+
+.p-galleria .p-galleria-indicators .p-galleria-indicator.p-highlight button {
+  background-color: #252525 !important;
+}

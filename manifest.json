@@ -1,0 +1,21 @@
+{
+    "name": "Chrochemart",
+    "short_name": "Chrochemart",
+    "theme_color": "#FFFFFF",
+    "background_color": "#FFFFFF",
+    "icons": [
+      {
+        "src": "https://i.ibb.co/hLC5Lb6/Logo-Waterhouse144.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      },
+      {
+        "src": "https://i.ibb.co/hLC5Lb6/Logo-Waterhouse512.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ],
+    "start_url": ".",
+    "display": "standalone",
+    "scope": "/"
+  }
