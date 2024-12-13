@@ -43,7 +43,7 @@ client.interceptors.response.use(
 );
 
 // Función para manejar conflictos en PouchDB
-const handleConflict = async ( docId, newDoc) => {
+const handleConflict = async (docId, newDoc) => {
   try {
     const existingDoc = await dbPeticiones.get(docId);
     const mergedDoc = { ...existingDoc, ...newDoc }; // Fusión de datos
@@ -68,7 +68,9 @@ const cacheRequest = async (method, endPoint, data = null, config = {}) => {
     console.log(`Petición ${method.toUpperCase()} almacenada en caché.`);
   } catch (error) {
     if (error.status === 409) {
-      console.warn("Conflicto detectado al guardar la petición. Resolviendo...");
+      console.warn(
+        "Conflicto detectado al guardar la petición. Resolviendo..."
+      );
       await handleConflict(request._id, request);
     } else {
       console.error("Error al guardar la petición en caché:", error);
@@ -82,12 +84,14 @@ export const sendPendingRequests = async () => {
     const requests = await dbPeticiones.allDocs({ include_docs: true });
     const pendingRequests = requests.rows.map((row) => row.doc);
 
-    console.log(`Reintentando ${pendingRequests.length} peticiones pendientes...`);
+    console.log(
+      `Reintentando ${pendingRequests.length} peticiones pendientes...`
+    );
 
     for (const request of pendingRequests) {
       try {
         const { method, endPoint, data, config } = request;
-        console.log(method)
+        console.log(method);
         console.log(`Procesando petición: ${method.toUpperCase()} ${endPoint}`);
         let response;
         if (method === "get" || method === "delete") {
@@ -130,7 +134,7 @@ const handleGetRequest = async (endPoint, config) => {
       await dbFetchesGet.put(fetch);
     } catch (error) {
       if (error.status === 409) {
-        await handleConflict( fetch._id, fetch);
+        await handleConflict(fetch._id, fetch);
       } else {
         console.error("Error al guardar la respuesta en caché:", error);
       }
@@ -158,6 +162,50 @@ const handleGetRequest = async (endPoint, config) => {
   }
 };
 
+// Función para actualizar el caché después de una operación exitosa
+const updateCacheAfterModification = async (endPoint, newData) => {
+  try {
+    const existingCache = await dbFetchesGet.get(endPoint);
+
+    // Asume que el dato en caché es un array
+    if (Array.isArray(existingCache.response)) {
+      const updatedResponse = existingCache.response.map((item) =>
+        item.id === newData.id ? { ...item, ...newData } : item
+      );
+
+      // Agregar si el elemento no existe
+      const exists = existingCache.response.some(
+        (item) => item.id === newData.id
+      );
+      if (!exists) {
+        updatedResponse.push(newData);
+      }
+
+      await dbFetchesGet.put({
+        ...existingCache,
+        response: updatedResponse,
+        timestamp: new Date().toISOString(),
+      });
+      console.log("Caché actualizado exitosamente.");
+    } else {
+      console.warn(
+        "El formato del caché no es un array, no se puede actualizar."
+      );
+    }
+  } catch (error) {
+    if (error.status === 404) {
+      console.log("No existe caché previo. Creando uno nuevo.");
+      await dbFetchesGet.put({
+        _id: endPoint,
+        response: [newData],
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      console.error("Error al actualizar el caché:", error);
+    }
+  }
+};
+
 // Exportar los métodos HTTP
 export default {
   get: async function (endPoint, config) {
@@ -165,21 +213,33 @@ export default {
   },
   post: async function (endPoint, object, config) {
     try {
-      return await client.post(endPoint, object, config || {});
+      const response = await client.post(endPoint, object, config || {});
+
+      if (response && response.data) {
+        // Actualizar el caché con los nuevos datos
+        await updateCacheAfterModification(endPoint, response.data);
+      }
+
+      return response;
     } catch (error) {
       if (!navigator.onLine) {
-
         await cacheRequest("post", endPoint, object, config);
         console.log("Petición POST almacenada para reintentar más tarde.");
         return Promise.resolve({ data: null });
       }
       return Promise.reject(error);
     }
-
   },
   put: async function (endPoint, object, config) {
     try {
-      return await client.put(endPoint, object, config || {});
+      const response = await client.put(endPoint, object, config || {});
+  
+      if (response && response.data) {
+        // Actualizar el caché con los datos modificados
+        await updateCacheAfterModification(endPoint, response.data);
+      }
+  
+      return response;
     } catch (error) {
       if (!navigator.onLine) {
         await cacheRequest("put", endPoint, object, config);
