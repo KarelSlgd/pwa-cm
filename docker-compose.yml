@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  warehouse-next-front:
+    container_name: pwa-crochet
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /home/ubuntu:/etc/letsencrypt/live/energiasustentable.study/
+    restart: unless-stopped
