@@ -21,8 +21,8 @@ export default {
           const registration = await navigator.serviceWorker.ready;
           registration.showNotification(title, {
             body: message,
-            icon: "src/assets/images/logo.png",
-            badge: "src/assets/images/grillo.png",
+            icon: "https://i.ibb.co/kcshw2q/512.png",
+            badge: "https://i.ibb.co/kcshw2q/512.png",
           });
         } else {
           console.warn("No se pueden mostrar notificaciones nativas: permisos no otorgados.");
