@@ -1,6 +1,6 @@
 <template>
   <div>
-    <Dialog header="Crear Categoría" :visible.sync="localVisible" :containerStyle="{ width: '50vw' }" class="font-bold"
+    <Dialog header="Crear Categoría" :visible.sync="localVisible" :containerStyle="{ width: '90vw' }" class="font-bold"
       @hide="closeModal" modal closable>
       <div class="p-fluid">
         <div class="field">

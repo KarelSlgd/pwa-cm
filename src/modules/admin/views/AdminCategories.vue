@@ -12,66 +12,36 @@
 
     <div class="col-12">
       <div>
-        <DataTable
-          :value="categories"
-          :paginator="true"
-          :rows="5"
-          dataKey="categoryName"
-          :filters.sync="filters"
-          filterDisplay="menu"
-          responsiveLayout="scroll"
-          :globalFilterFields="['categoryName', 'categoryDescription']"
-        >
+        <DataTable :value="categories" :paginator="true" :rows="5" dataKey="categoryName" :filters.sync="filters"
+          filterDisplay="menu" responsiveLayout="scroll" :globalFilterFields="['categoryName', 'categoryDescription']">
           <template #header>
             <div class="flex justify-content-end">
               <span class="p-input-icon-left">
                 <i class="pi pi-search" />
-                <InputText
-                  v-model="filters['global'].value"
-                  placeholder="Buscar categoría"
-                />
+                <InputText v-model="filters['global'].value" placeholder="Buscar categoría" />
               </span>
             </div>
           </template>
 
+
           <Column field="categoryName" header="Nombre" :sortable="true" />
-          <Column
-            field="categoryDescription"
-            header="Descripción"
-            :sortable="true"
-          >
+          <Column field="categoryDescription" header="Descripción" :sortable="true">
             <template>
-              <InputText
-                placeholder="Buscar por descripción"
-                class="p-column-filter"
-              />
+              <InputText placeholder="Buscar por descripción" class="p-column-filter" />
             </template>
           </Column>
 
           <Column header="Acciones">
             <template #body="{ data }">
-              <Button
-                icon="pi pi-pencil"
-                class="p-button-rounded p-button-success mr-2"
-                @click="openEditModal(data)"
-              />
-              <Button
-                icon="pi pi-times"
-                class="p-button-rounded p-button-danger"
-                @click="toggleStatus(data)"
-              />
+              <Button icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" @click="openEditModal(data)" />
+              <Button icon='pi pi-times' class="p-button-rounded p-button-danger" @click="toggleStatus(data)" />
             </template>
           </Column>
         </DataTable>
       </div>
     </div>
-    <EditCategoryModal
-      :category="selectedCategory"
-      v-if="selectedCategory"
-      :visible.sync="isEditModalVisible"
-      @update-category="updateCategory"
-      @close="selectedCategory = null"
-    />
+    <EditCategoryModal :category="selectedCategory" v-if="selectedCategory" :visible.sync="isEditModalVisible"
+      @update-category="updateCategory" @close="selectedCategory = null" />
   </div>
 </template>
 
@@ -201,13 +171,13 @@ export default {
       this.isOnline = navigator.onLine;
     },
   },
+
   watch: {
     isOnline(newStatus) {
-      console.log(newStatus);
+      console.log(newStatus)
       if (newStatus) {
         setTimeout(() => {
           this.getCategories();
-          this.$toast.success("Conexión restaurada. Categorías actualizadas.");
         }, 2000);
       } else {
         this.$toast.info("Conexión perdida. Modo offline.");
@@ -216,13 +186,16 @@ export default {
   },
   mounted() {
     this.getCategories();
+    window.addEventListener("online", this.processPendingRequests);
     window.addEventListener("online", this.updateOnlineStatus);
     window.addEventListener("offline", this.updateOnlineStatus);
   },
   beforeDestroy() {
+    window.addEventListener("online", this.processPendingRequests);
     window.removeEventListener("online", this.updateOnlineStatus);
     window.removeEventListener("offline", this.updateOnlineStatus);
   },
+
 };
 </script>
 
