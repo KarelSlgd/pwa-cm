@@ -43,12 +43,18 @@ client.interceptors.response.use(
 );
 
 // Función para manejar conflictos en PouchDB
-const handleConflict = async ( docId, newDoc) => {
+const handleConflict = async (docId, newDoc) => {
   try {
     const existingDoc = await dbPeticiones.get(docId);
     const mergedDoc = { ...existingDoc, ...newDoc }; // Fusión de datos
     await dbPeticiones.put(mergedDoc);
     console.log("Conflicto resuelto y documento actualizado:", docId);
+
+    // Actualizar el caché de fetch
+    const fetchDoc = await dbFetchesGet.get(docId);
+    const updatedFetchDoc = { ...fetchDoc, ...newDoc };
+    await dbFetchesGet.put(updatedFetchDoc);
+    console.log("Caché de fetch actualizado:", docId);
   } catch (error) {
     console.error("Error al resolver conflicto:", error);
   }
@@ -66,6 +72,14 @@ const cacheRequest = async (method, endPoint, data = null, config = {}) => {
   try {
     await dbPeticiones.put(request);
     console.log(`Petición ${method.toUpperCase()} almacenada en caché.`);
+
+    // Agregar nuevos datos al caché de fetch
+    if (method === "post") {
+      const fetchDoc = await dbFetchesGet.get(endPoint);
+      const updatedFetchDoc = { ...fetchDoc, data: [...fetchDoc.data, data] };
+      await dbFetchesGet.put(updatedFetchDoc);
+      console.log("Nuevo dato agregado al caché de fetch:", endPoint);
+    }
   } catch (error) {
     if (error.status === 409) {
       console.warn("Conflicto detectado al guardar la petición. Resolviendo...");
@@ -75,7 +89,6 @@ const cacheRequest = async (method, endPoint, data = null, config = {}) => {
     }
   }
 };
-
 // Función para reenviar peticiones pendientes
 export const sendPendingRequests = async () => {
   try {
