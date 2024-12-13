@@ -7,6 +7,8 @@ module.exports = defineConfig({
   pwa: {
     workboxPluginMode: 'GenerateSW',
     workboxOptions: {
+      skipWaiting: true,
+      clientsClaim: true,
       runtimeCaching: [
         {
           urlPattern: new RegExp('^http://52\\.206\\.58\\.127:8080/api/'),

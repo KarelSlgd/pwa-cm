@@ -79,7 +79,7 @@ const cacheRequest = async (method, endPoint, data = null, config = {}) => {
       const updatedFetchDoc = { ...fetchDoc, data: [...fetchDoc.data, data] };
       await dbFetchesGet.put(updatedFetchDoc);
       console.log("Nuevo dato agregado al caché de fetch:", endPoint);
-    }
+    } 
   } catch (error) {
     if (error.status === 409) {
       console.warn("Conflicto detectado al guardar la petición. Resolviendo...");
