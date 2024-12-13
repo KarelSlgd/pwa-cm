@@ -36,15 +36,15 @@ export default {
             const token = utils.getToken();
 
             if (!token) {
-                this.$router.push("/pwa-cm/");
+                this.$router.push("/");
                 return;
             }
 
             const role = utils.getRole();
             if (role.toString().toLowerCase() === "admin") {
-                this.$router.push("/pwa-cm/admin");
+                this.$router.push("/admin");
             } else {
-                this.$router.push("/pwa-cm/");
+                this.$router.push("/");
             }
         },
     },

@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
           background_color: "#ffffff",
           theme_color: "#000000",
           orientation: "portrait",
-          scope: "/",
+          scope: "/pwa-cm/",
           lang: "es-MX",
         },
         workbox: {
