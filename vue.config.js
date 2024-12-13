@@ -1,4 +1,5 @@
-const { defineConfig } = require('@vue/cli-service')
+const { defineConfig } = require('@vue/cli-service');
+
 module.exports = defineConfig({
   transpileDependencies: true,
   devServer: {
@@ -11,17 +12,16 @@ module.exports = defineConfig({
       clientsClaim: true,
       runtimeCaching: [
         {
-          urlPattern: new RegExp('^http://52\\.206\\.58\\.127:8080/api/'),
-          handler: 'NetworkFirst',
+          urlPattern: new RegExp('^https://www.energiasustentable.study/8080/api/'),
+          handler: 'StaleWhileRevalidate',
           options: {
-            cacheName: 'api-category-cache',
-            networkTimeoutSeconds: 50, // Tiempo de espera para la red
+            cacheName: 'dynamic-api-cache',
             expiration: {
-              maxEntries: 50, // Máximo de entradas en caché
+              maxEntries: 100, // Máximo de entradas en caché
               maxAgeSeconds: 7 * 24 * 60 * 60, // 1 semana
             },
             cacheableResponse: {
-              statuses: [0, 500], // Respuestas cacheables
+              statuses: [0, 200], // Respuestas válidas para la caché
             },
           },
         },
@@ -32,7 +32,7 @@ module.exports = defineConfig({
             cacheName: 'static-assets-cache',
             expiration: {
               maxEntries: 50,
-              maxAgeSeconds: 30 * 24 * 60 * 60,
+              maxAgeSeconds: 30 * 24 * 60 * 60, // 30 días
             },
             cacheableResponse: {
               statuses: [0, 200],
@@ -42,4 +42,4 @@ module.exports = defineConfig({
       ],
     },
   },
-})
+});
