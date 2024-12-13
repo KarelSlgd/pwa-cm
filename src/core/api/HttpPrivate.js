@@ -165,41 +165,47 @@ const handleGetRequest = async (endPoint, config) => {
 // Función para actualizar el caché después de una operación exitosa
 const updateCacheAfterModification = async (endPoint, newData) => {
   try {
+    // Intenta obtener el caché existente
     const existingCache = await dbFetchesGet.get(endPoint);
 
-    // Verifica si la respuesta es un array para actualizar o agregar elementos
+    // Verifica si es un array de datos y actualiza/agrega el elemento
     if (Array.isArray(existingCache.response.data)) {
       const updatedResponse = existingCache.response.data.map((item) =>
         item.id === newData.id ? { ...item, ...newData } : item
       );
 
-      // Agrega el nuevo dato si no existe
+      // Si no existe el dato, lo agrega al array
       const exists = existingCache.response.data.some((item) => item.id === newData.id);
       if (!exists) {
         updatedResponse.push(newData);
       }
 
-      // Guarda el caché actualizado
+      // Actualiza el documento en la base de datos
       await dbFetchesGet.put({
         ...existingCache,
         response: { ...existingCache.response, data: updatedResponse },
         timestamp: new Date().toISOString(),
       });
-      console.log("Caché actualizado correctamente.");
+      console.log("Caché actualizado correctamente en IndexedDB.");
     } else {
-      console.warn("El formato de la respuesta no es compatible.");
+      console.warn("Formato no esperado en el caché, sobrescribiendo...");
+      await dbFetchesGet.put({
+        ...existingCache,
+        response: { data: [newData] },
+        timestamp: new Date().toISOString(),
+      });
     }
   } catch (error) {
     if (error.status === 404) {
-      // Si no existe el caché, crea uno nuevo
+      // Si no existe caché previo, crea uno nuevo
       await dbFetchesGet.put({
         _id: endPoint,
         response: { data: [newData] },
         timestamp: new Date().toISOString(),
       });
-      console.log("Caché creado con el nuevo dato.");
+      console.log("Caché creado con nuevo dato.");
     } else {
-      console.error("Error al actualizar el caché:", error);
+      console.error("Error al actualizar o crear caché en IndexedDB:", error);
     }
   }
 };
@@ -212,9 +218,12 @@ export default {
   post: async function (endPoint, object, config) {
     try {
       const response = await client.post(endPoint, object, config || {});
+  
       if (response && response.data) {
+        // Actualiza el caché con los datos recibidos
         await updateCacheAfterModification(endPoint, response.data);
       }
+  
       return response;
     } catch (error) {
       if (!navigator.onLine) {
@@ -230,6 +239,7 @@ export default {
       const response = await client.put(endPoint, object, config || {});
   
       if (response && response.data) {
+        // Actualiza el caché con los datos recibidos
         await updateCacheAfterModification(endPoint, response.data);
       }
   
