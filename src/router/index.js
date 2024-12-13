@@ -8,7 +8,7 @@ Vue.use(VueRouter);
 
 const routes = [
   {
-    path: "/pwa-cm/",
+    path: "/",
     redirect: "/pwa-cm/inicio",
     component: {
       render(c) {
@@ -47,7 +47,7 @@ const routes = [
 ];
 
 const router = new VueRouter({
-  mode: "hash",
+  mode: "history",
   routes,
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
