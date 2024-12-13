@@ -10,9 +10,9 @@ import AdminHelp from "@/modules/admin/views/AdminHelpInformation.vue";
 
 export default [
   {
-    path: "/pwa-cm//admin",
+    path: "/admin",
     name: "admin",
-    redirect: "/admin/dashboard",
+    redirect: "/pwa-cm/admin/dashboard",
     component: () => import("../../layouts/AdminLayout.vue"),
     meta: {
       title: "Admin",
