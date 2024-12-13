@@ -167,27 +167,26 @@ const handleGetRequest = async (endPoint, config) => {
   }
 };
 
-// Función para actualizar el caché después de una operación exitosa
 const updateCacheAfterModification = async (endPoint, newData) => {
   try {
-    // Intenta obtener el caché existente
+    // Obtener el caché existente
     const existingCache = await dbFetchesGet.get(endPoint);
 
-    // Verifica si es un array de datos y actualiza/agrega el elemento
     if (Array.isArray(existingCache.response.data)) {
+      // Actualizar el elemento si ya existe
       const updatedResponse = existingCache.response.data.map((item) =>
-        item.id === newData.id ? { ...item, ...newData } : item
+        item.idCategory === newData.idCategory ? { ...item, ...newData } : item
       );
 
-      // Si no existe el dato, lo agrega al array
+      // Verificar si el elemento no existe, y agregarlo en ese caso
       const exists = existingCache.response.data.some(
-        (item) => item.id === newData.id
+        (item) => item.idCategory === newData.idCategory
       );
       if (!exists) {
         updatedResponse.push(newData);
       }
 
-      // Actualiza el documento en la base de datos
+      // Guardar la respuesta actualizada en IndexedDB
       await dbFetchesGet.put({
         ...existingCache,
         response: { ...existingCache.response, data: updatedResponse },
@@ -204,7 +203,7 @@ const updateCacheAfterModification = async (endPoint, newData) => {
     }
   } catch (error) {
     if (error.status === 404) {
-      // Si no existe caché previo, crea uno nuevo
+      // Crear un nuevo caché si no existe
       await dbFetchesGet.put({
         _id: endPoint,
         response: { data: [newData] },
@@ -222,13 +221,13 @@ const updateCacheOffline = async (endPoint, newData) => {
     const existingCache = await dbFetchesGet.get(endPoint);
 
     if (Array.isArray(existingCache.response.data)) {
-      // Actualiza o agrega el nuevo dato al array en caché
+      // Actualizar o agregar el nuevo dato basado en idCategory
       const updatedResponse = existingCache.response.data.map((item) =>
-        item.id === newData.id ? { ...item, ...newData } : item
+        item.idCategory === newData.idCategory ? { ...item, ...newData } : item
       );
 
       const exists = existingCache.response.data.some(
-        (item) => item.id === newData.id
+        (item) => item.idCategory === newData.idCategory
       );
       if (!exists) {
         updatedResponse.push(newData);
@@ -250,7 +249,7 @@ const updateCacheOffline = async (endPoint, newData) => {
     }
   } catch (error) {
     if (error.status === 404) {
-      // Si no existe el caché, crea uno nuevo
+      // Crear un nuevo caché si no existe
       await dbFetchesGet.put({
         _id: endPoint,
         response: { data: [newData] },
@@ -273,14 +272,14 @@ export default {
       const response = await client.post(endPoint, object, config || {});
 
       if (response && response.data) {
-        // Actualiza el caché en modo online
+        // Actualizar el caché con el nuevo dato
         await updateCacheAfterModification(endPoint, response.data);
       }
 
       return response;
     } catch (error) {
       if (!navigator.onLine) {
-        // Si está offline, actualiza directamente el caché
+        // Si está offline, actualizar el caché directamente
         await updateCacheOffline(endPoint, object);
         console.log("Caché actualizado en modo offline tras POST.");
         return Promise.resolve({ data: object });
@@ -293,14 +292,14 @@ export default {
       const response = await client.put(endPoint, object, config || {});
 
       if (response && response.data) {
-        // Actualiza el caché en modo online
+        // Actualizar el caché con el dato modificado
         await updateCacheAfterModification(endPoint, response.data);
       }
 
       return response;
     } catch (error) {
       if (!navigator.onLine) {
-        // Si está offline, actualiza directamente el caché
+        // Si está offline, actualizar el caché directamente
         await updateCacheOffline(endPoint, object);
         console.log("Caché actualizado en modo offline tras PUT.");
         return Promise.resolve({ data: object });
