@@ -4,6 +4,8 @@ import { resolve } from "path";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig(({ mode }) => {
+  const isDevelopment = mode === "development";
+
   return {
     base: "/pwa-cm/",
     plugins: [
