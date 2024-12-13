@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   const isDevelopment = mode === "development";
 
   return {
-    base: mode === "production" ? "/pwa-cm/" : "/",
+    base: "/pwa-cm/",
     plugins: [
       vue(),
       VitePWA({
