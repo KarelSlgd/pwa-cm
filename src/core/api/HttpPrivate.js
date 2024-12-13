@@ -167,39 +167,37 @@ const updateCacheAfterModification = async (endPoint, newData) => {
   try {
     const existingCache = await dbFetchesGet.get(endPoint);
 
-    // Asume que el dato en caché es un array
-    if (Array.isArray(existingCache.response)) {
-      const updatedResponse = existingCache.response.map((item) =>
+    // Verifica si la respuesta es un array para actualizar o agregar elementos
+    if (Array.isArray(existingCache.response.data)) {
+      const updatedResponse = existingCache.response.data.map((item) =>
         item.id === newData.id ? { ...item, ...newData } : item
       );
 
-      // Agregar si el elemento no existe
-      const exists = existingCache.response.some(
-        (item) => item.id === newData.id
-      );
+      // Agrega el nuevo dato si no existe
+      const exists = existingCache.response.data.some((item) => item.id === newData.id);
       if (!exists) {
         updatedResponse.push(newData);
       }
 
+      // Guarda el caché actualizado
       await dbFetchesGet.put({
         ...existingCache,
-        response: updatedResponse,
+        response: { ...existingCache.response, data: updatedResponse },
         timestamp: new Date().toISOString(),
       });
-      console.log("Caché actualizado exitosamente.");
+      console.log("Caché actualizado correctamente.");
     } else {
-      console.warn(
-        "El formato del caché no es un array, no se puede actualizar."
-      );
+      console.warn("El formato de la respuesta no es compatible.");
     }
   } catch (error) {
     if (error.status === 404) {
-      console.log("No existe caché previo. Creando uno nuevo.");
+      // Si no existe el caché, crea uno nuevo
       await dbFetchesGet.put({
         _id: endPoint,
-        response: [newData],
+        response: { data: [newData] },
         timestamp: new Date().toISOString(),
       });
+      console.log("Caché creado con el nuevo dato.");
     } else {
       console.error("Error al actualizar el caché:", error);
     }
@@ -214,12 +212,9 @@ export default {
   post: async function (endPoint, object, config) {
     try {
       const response = await client.post(endPoint, object, config || {});
-
       if (response && response.data) {
-        // Actualizar el caché con los nuevos datos
         await updateCacheAfterModification(endPoint, response.data);
       }
-
       return response;
     } catch (error) {
       if (!navigator.onLine) {
@@ -235,7 +230,6 @@ export default {
       const response = await client.put(endPoint, object, config || {});
   
       if (response && response.data) {
-        // Actualizar el caché con los datos modificados
         await updateCacheAfterModification(endPoint, response.data);
       }
   
@@ -248,7 +242,7 @@ export default {
       }
       return Promise.reject(error);
     }
-  },
+  },  
   delete: async function (endPoint, config) {
     try {
       return await client.delete(endPoint, config);
