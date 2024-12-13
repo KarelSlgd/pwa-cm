@@ -127,34 +127,39 @@ const handleGetRequest = async (endPoint, config) => {
     const fetch = {
       _id: endPoint,
       response: response.data,
-      timestamp: new Date().toISOString(), // Agregar un timestamp
+      timestamp: new Date().toISOString(),
     };
 
     try {
+      // Guarda o actualiza la respuesta en el caché
       await dbFetchesGet.put(fetch);
     } catch (error) {
       if (error.status === 409) {
-        await handleConflict(fetch._id, fetch);
+        // Actualiza el caché si ya existe un documento con el mismo ID
+        const existingCache = await dbFetchesGet.get(endPoint);
+        await dbFetchesGet.put({
+          ...existingCache,
+          response: response.data,
+          timestamp: new Date().toISOString(),
+        });
       } else {
         console.error("Error al guardar la respuesta en caché:", error);
       }
     }
     return response;
   } catch (error) {
+    // Manejo de modo offline
     if (!navigator.onLine) {
       try {
         const fetch = await dbFetchesGet.get(endPoint);
-        console.log("Respuesta obtenida de la caché:", fetch.response);
+        console.log("Respuesta obtenida del caché:", fetch.response);
 
-        return { data: fetch.response };
+        return { data: fetch.response }; // Devuelve los datos almacenados
       } catch (fetchError) {
         if (fetchError.status === 404) {
           console.error("No se encontró la respuesta en caché:", fetchError);
         } else {
-          console.error(
-            "Error al obtener la respuesta de la caché:",
-            fetchError
-          );
+          console.error("Error al obtener la respuesta del caché:", fetchError);
         }
       }
     }
@@ -175,7 +180,9 @@ const updateCacheAfterModification = async (endPoint, newData) => {
       );
 
       // Si no existe el dato, lo agrega al array
-      const exists = existingCache.response.data.some((item) => item.id === newData.id);
+      const exists = existingCache.response.data.some(
+        (item) => item.id === newData.id
+      );
       if (!exists) {
         updatedResponse.push(newData);
       }
@@ -210,6 +217,52 @@ const updateCacheAfterModification = async (endPoint, newData) => {
   }
 };
 
+const updateCacheOffline = async (endPoint, newData) => {
+  try {
+    const existingCache = await dbFetchesGet.get(endPoint);
+
+    if (Array.isArray(existingCache.response.data)) {
+      // Actualiza o agrega el nuevo dato al array en caché
+      const updatedResponse = existingCache.response.data.map((item) =>
+        item.id === newData.id ? { ...item, ...newData } : item
+      );
+
+      const exists = existingCache.response.data.some(
+        (item) => item.id === newData.id
+      );
+      if (!exists) {
+        updatedResponse.push(newData);
+      }
+
+      await dbFetchesGet.put({
+        ...existingCache,
+        response: { ...existingCache.response, data: updatedResponse },
+        timestamp: new Date().toISOString(),
+      });
+      console.log("Caché actualizado en modo offline.");
+    } else {
+      console.warn("Formato no esperado en la respuesta, sobrescribiendo...");
+      await dbFetchesGet.put({
+        ...existingCache,
+        response: { data: [newData] },
+        timestamp: new Date().toISOString(),
+      });
+    }
+  } catch (error) {
+    if (error.status === 404) {
+      // Si no existe el caché, crea uno nuevo
+      await dbFetchesGet.put({
+        _id: endPoint,
+        response: { data: [newData] },
+        timestamp: new Date().toISOString(),
+      });
+      console.log("Nuevo caché creado en modo offline.");
+    } else {
+      console.error("Error al actualizar el caché en modo offline:", error);
+    }
+  }
+};
+
 // Exportar los métodos HTTP
 export default {
   get: async function (endPoint, config) {
@@ -218,18 +271,19 @@ export default {
   post: async function (endPoint, object, config) {
     try {
       const response = await client.post(endPoint, object, config || {});
-  
+
       if (response && response.data) {
-        // Actualiza el caché con los datos recibidos
+        // Actualiza el caché en modo online
         await updateCacheAfterModification(endPoint, response.data);
       }
-  
+
       return response;
     } catch (error) {
       if (!navigator.onLine) {
-        await cacheRequest("post", endPoint, object, config);
-        console.log("Petición POST almacenada para reintentar más tarde.");
-        return Promise.resolve({ data: null });
+        // Si está offline, actualiza directamente el caché
+        await updateCacheOffline(endPoint, object);
+        console.log("Caché actualizado en modo offline tras POST.");
+        return Promise.resolve({ data: object });
       }
       return Promise.reject(error);
     }
@@ -237,22 +291,23 @@ export default {
   put: async function (endPoint, object, config) {
     try {
       const response = await client.put(endPoint, object, config || {});
-  
+
       if (response && response.data) {
-        // Actualiza el caché con los datos recibidos
+        // Actualiza el caché en modo online
         await updateCacheAfterModification(endPoint, response.data);
       }
-  
+
       return response;
     } catch (error) {
       if (!navigator.onLine) {
-        await cacheRequest("put", endPoint, object, config);
-        console.log("Petición PUT almacenada para reintentar más tarde.");
-        return Promise.resolve({ data: null });
+        // Si está offline, actualiza directamente el caché
+        await updateCacheOffline(endPoint, object);
+        console.log("Caché actualizado en modo offline tras PUT.");
+        return Promise.resolve({ data: object });
       }
       return Promise.reject(error);
     }
-  },  
+  },
   delete: async function (endPoint, config) {
     try {
       return await client.delete(endPoint, config);
