@@ -9,7 +9,7 @@ Vue.use(VueRouter);
 const routes = [
   {
     path: "/",
-    redirect: "/pwa-cm/inicio",
+    redirect: "/inicio",
     component: {
       render(c) {
         return c("router-view");
@@ -27,7 +27,7 @@ const routes = [
     ],
   },
   {
-    path: "/pwa-cm/admin225ij5a2o1uzptgeo9g",
+    path: "/admin225ij5a2o1uzptgeo9g",
     name: "login",
     component: AdminLogin,
     meta: {
