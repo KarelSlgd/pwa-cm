@@ -4,8 +4,6 @@ import { resolve } from "path";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig(({ mode }) => {
-  const isDevelopment = mode === "development";
-
   return {
     base: "/pwa-cm/",
     plugins: [
@@ -39,7 +37,7 @@ export default defineConfig(({ mode }) => {
               purpose: "any",
             },
           ],
-          start_url: "/pwa-cm/inicio",
+          start_url: "/pwa-cm/",
           display: "standalone",
           background_color: "#ffffff",
           theme_color: "#000000",
