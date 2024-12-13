@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => {
               purpose: "any",
             },
           ],
-          start_url: "/",
+          start_url: "/pwa-cm/",
           display: "standalone",
           background_color: "#ffffff",
           theme_color: "#000000",
