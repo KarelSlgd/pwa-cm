@@ -9,7 +9,7 @@ module.exports = defineConfig({
     workboxOptions: {
       runtimeCaching: [
         {
-          urlPattern: new RegExp('^http://52\\.206\\.58\\.127:8080/api/'),
+          urlPattern: new RegExp('^https://www.energiasustentable.study:8080/api/'),
           handler: 'NetworkFirst',
           options: {
             cacheName: 'api-category-cache',
