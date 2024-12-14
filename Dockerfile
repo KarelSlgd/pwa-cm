@@ -27,7 +27,7 @@ RUN rm /etc/nginx/conf.d/default.conf
 COPY default.conf /etc/nginx/conf.d/
 
 # Exponer el puerto en el contenedor
-EXPOSE 80 443
+EXPOSE 80
 
 # Comando para iniciar Nginx
 CMD ["nginx", "-g", "daemon off;"]

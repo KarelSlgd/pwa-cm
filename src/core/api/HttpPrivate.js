@@ -118,36 +118,40 @@ export const sendPendingRequests = async () => {
 // Función para manejar GET con caché
 const handleGetRequest = async (endPoint, config) => {
   try {
-    // Intentar obtener la respuesta del Service Worker o red
     const response = await client.get(endPoint, config);
 
-    // Guardar la respuesta en PouchDB para un respaldo local
     const fetch = {
       _id: endPoint,
       response: response.data,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString(), // Agregar un timestamp
     };
 
     try {
       await dbFetchesGet.put(fetch);
     } catch (error) {
       if (error.status === 409) {
-        await handleConflict(fetch._id, fetch);
+        await handleConflict( fetch._id, fetch);
       } else {
-        console.error("Error al guardar la respuesta en PouchDB:", error);
+        console.error("Error al guardar la respuesta en caché:", error);
       }
     }
-
     return response;
   } catch (error) {
     if (!navigator.onLine) {
-      // Modo offline: devolver la respuesta desde PouchDB si existe
       try {
-        const cachedFetch = await dbFetchesGet.get(endPoint);
-        console.log("Respuesta obtenida de PouchDB:", cachedFetch.response);
-        return { data: cachedFetch.response };
+        const fetch = await dbFetchesGet.get(endPoint);
+        console.log("Respuesta obtenida de la caché:", fetch.response);
+
+        return { data: fetch.response };
       } catch (fetchError) {
-        console.error("Error al obtener respuesta de PouchDB:", fetchError);
+        if (fetchError.status === 404) {
+          console.error("No se encontró la respuesta en caché:", fetchError);
+        } else {
+          console.error(
+            "Error al obtener la respuesta de la caché:",
+            fetchError
+          );
+        }
       }
     }
     return Promise.reject(error);
