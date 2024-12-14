@@ -26,7 +26,6 @@
     </Dialog>
   </div>
 </template>
-
 <script>
 import Dialog from "primevue/dialog";
 import InputText from "primevue/inputtext";
@@ -88,9 +87,10 @@ export default {
       };
 
       if (!navigator.onLine) {
-        // Sin conexión: guardar en dbPeticiones
+        // Sin conexión: guardar en _pouch_peticiones y _pouch_fetchesGet
         try {
-          await window.dbPeticiones.put(categoryData);
+          await window._pouch_peticiones.put(categoryData);
+          await window._pouch_fetchesGet.put(categoryData);
           this.$toast.info(
             "Sin conexión. La categoría se guardará y registrará automáticamente cuando vuelva la conexión."
           );
@@ -129,7 +129,9 @@ export default {
     },
     async processPendingRequests() {
       try {
-        const result = await window.dbPeticiones.allDocs({ include_docs: true });
+        const result = await window._pouch_peticiones.allDocs({
+          include_docs: true,
+        });
         for (const doc of result.rows) {
           if (doc.doc.status === "pending") {
             try {
@@ -137,7 +139,8 @@ export default {
                 doc.doc.categoryName,
                 doc.doc.categoryDescription
               );
-              await window.dbPeticiones.remove(doc.doc); // Eliminar después de sincronizar
+              await window._pouch_peticiones.remove(doc.doc); // Eliminar después de sincronizar
+              await window._pouch_fetchesGet.remove(doc.doc); // Eliminar después de sincronizar
               this.$toast.success(
                 `Categoría "${doc.doc.categoryName}" registrada exitosamente.`
               );

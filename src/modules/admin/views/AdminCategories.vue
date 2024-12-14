@@ -79,123 +79,121 @@ export default {
   methods: {
     async getCategories() {
       try {
-        const response = await AdminServices.getAllCategories();
-        const { data, statusCode } = response;
-        if (statusCode === 200) {
-          this.categories = data;
-        }
+        // Obtener categorías desde PouchDB
+        const result = await window._pouch_fetchesGet.allDocs({
+          include_docs: true,
+        });
+        this.categories = result.rows.map((row) => row.doc);
       } catch (error) {
-        this.$toast.error("Error al obtener las categorías");
+        this.$toast.error("Error al obtener las categorías desde el caché.");
+      }
+    },
+    async saveCategoryLocally(category) {
+      try {
+        await window._pouch_fetchesGet.put({ ...category, _id: category._id || new Date().toISOString() });
+      } catch (error) {
+        this.$toast.error("Error al guardar la categoría en caché.");
+      }
+    },
+    async deleteCategoryLocally(id) {
+      try {
+        const doc = await window._pouch_fetchesGet.get(id);
+        await window._pouch_fetchesGet.remove(doc);
+      } catch (error) {
+        this.$toast.error("Error al eliminar la categoría en caché.");
       }
     },
     openEditModal(category) {
       this.selectedCategory = { ...category };
       this.isEditModalVisible = true;
     },
-    async updateCategory() {
+    async updateCategoryLocally(category) {
+      await this.saveCategoryLocally(category);
+      this.getCategories();
+    },
+    async createCategory(category) {
+      if (!navigator.onLine) {
+        // Guardar en caché si no hay conexión
+        category.status = "pending";
+        await this.saveCategoryLocally(category);
+        this.$toast.info("Categoría creada en modo offline.");
+        return;
+      }
       try {
-        await this.getCategories();
-        this.isEditModalVisible = false;
-        this.selectedCategory = null;
+        const response = await AdminServices.addCategory(category);
+        if (response.statusCode === 201) {
+          this.$toast.success("Categoría creada exitosamente.");
+          this.getCategories();
+        }
       } catch (error) {
-        this.$toast.error("Error al actualizar la categoría");
+        this.$toast.error("Error al crear la categoría.");
       }
     },
     async toggleStatus(category) {
       if (!navigator.onLine) {
-        // Sin conexión: almacenar la solicitud pendiente
-        this.pendingRequests.push({
-          action: "toggleStatus",
-          data: category,
-        });
+        category.status = category.status === "active" ? "inactive" : "active";
+        await this.saveCategoryLocally(category);
         this.$toast.info(
-          `Sin conexión. El estado de la categoría "${category.categoryName}" se actualizará automáticamente al restablecer la conexión.`
+          `Estado de la categoría "${category.categoryName}" cambiado en modo offline.`
         );
         return;
       }
-      // Con conexión: realizar la operación
-      await this.executeToggleStatus(category);
-    },
-    async executeToggleStatus(category) {
       try {
-        const response = await AdminServices.deleteCategory(
-          category.categoryName
-        );
-        const { statusCode, message } = response;
-        if (statusCode === 200) {
+        const response = await AdminServices.toggleCategoryStatus(category);
+        if (response.statusCode === 200) {
           this.getCategories();
-          this.$toast.success(message);
-        } else {
-          this.$toast.error(message);
+          this.$toast.success("Estado de categoría actualizado.");
         }
       } catch (error) {
-        this.$toast.error("Error al actualizar la categoría");
+        this.$toast.error("Error al actualizar el estado de la categoría.");
       }
     },
     async processPendingRequests() {
-      for (const request of this.pendingRequests) {
-        if (request.action === "toggleStatus") {
-          await this.executeToggleStatus(request.data);
+      const result = await window._pouch_fetchesGet.allDocs({
+        include_docs: true,
+      });
+      for (const doc of result.rows) {
+        if (doc.doc.status === "pending") {
+          try {
+            // Sincronizar con el servidor
+            const response = await AdminServices.addCategory(doc.doc);
+            if (response.statusCode === 201) {
+              await this.deleteCategoryLocally(doc.doc._id); // Eliminar del caché
+            }
+          } catch (error) {
+            this.$toast.error(
+              `Error al sincronizar categoría "${doc.doc.categoryName}".`
+            );
+          }
         }
       }
-      this.pendingRequests = [];
-    },
-    async deleteCategory(name, status) {
-      if (!navigator.onLine) {
-        // Sin conexión: almacenar la solicitud pendiente
-        this.pendingRequests.push({
-          action: "deleteCategory",
-          data: { name, status },
-        });
-        this.$toast.info(
-          `Sin conexión. La eliminación de la categoría "${name}" se realizará automáticamente al restablecer la conexión.`
-        );
-        return;
-      }
-      // Con conexión: realizar la operación
-      await this.executeDeleteCategory(name, status);
-    },
-    async executeDeleteCategory(name, status) {
-      try {
-        await AdminServices.deleteCategory(name, status);
-        this.getCategories();
-        this.$toast.success("Categoría eliminada correctamente.");
-      } catch (error) {
-        this.$toast.error("Error al eliminar la categoría");
-      }
-    },
-    openModal() {
-      this.modalVisible = true;
-    },
-    updateOnlineStatus() {
-      this.isOnline = navigator.onLine;
+      this.getCategories();
     },
   },
-
   watch: {
     isOnline(newStatus) {
-      console.log(newStatus)
       if (newStatus) {
-        setTimeout(() => {
-          this.getCategories();
-        }, 2000);
+        this.$toast.success("Conexión restaurada. Sincronizando datos...");
+        this.processPendingRequests();
       } else {
-        this.$toast.info("Conexión perdida. Modo offline.");
+        this.$toast.info("Conexión perdida. Modo offline activado.");
       }
     },
   },
   mounted() {
     this.getCategories();
-    window.addEventListener("online", this.processPendingRequests);
+    window._pouch_fetchesGet
+      .changes({ live: true, since: "now", include_docs: true })
+      .on("change", () => {
+        this.getCategories();
+      });
     window.addEventListener("online", this.updateOnlineStatus);
     window.addEventListener("offline", this.updateOnlineStatus);
   },
   beforeDestroy() {
-    window.addEventListener("online", this.processPendingRequests);
     window.removeEventListener("online", this.updateOnlineStatus);
     window.removeEventListener("offline", this.updateOnlineStatus);
   },
-
 };
 </script>
 
