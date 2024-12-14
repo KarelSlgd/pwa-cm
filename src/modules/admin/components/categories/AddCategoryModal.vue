@@ -54,7 +54,6 @@ export default {
       categoryDescription: "",
       isCategoryNameInvalid: false,
       isLoading: false,
-      pendingRequests: [],
     };
   },
   methods: {
@@ -81,29 +80,39 @@ export default {
         return;
       }
 
+      const categoryData = {
+        _id: new Date().toISOString(), // Identificador único
+        categoryName: this.categoryName,
+        categoryDescription: this.categoryDescription,
+        status: "pending", // Estado inicial
+      };
+
       if (!navigator.onLine) {
-        // Sin conexión: cerrar modal y agregar a solicitudes pendientes
-        this.pendingRequests.push({
-          categoryName: this.categoryName,
-          categoryDescription: this.categoryDescription,
-        });
-        this.$toast.info(
-          "Sin conexión. La categoría se registrará automáticamente cuando vuelva la conexión."
-        );
-        this.closeModal();
-        this.isLoading = false;
+        // Sin conexión: guardar en dbPeticiones
+        try {
+          await window.dbPeticiones.put(categoryData);
+          this.$toast.info(
+            "Sin conexión. La categoría se guardará y registrará automáticamente cuando vuelva la conexión."
+          );
+          this.closeModal();
+        } catch (error) {
+          this.$toast.error("Error al guardar la categoría localmente.");
+        } finally {
+          this.isLoading = false;
+        }
       } else {
-        // Con conexión: intentar enviar la solicitud
-        this.addCategory();
+        // Con conexión: enviar al servidor
+        this.addCategory(categoryData);
       }
     },
-    async addCategory() {
+    async addCategory(categoryData) {
       try {
         const response = await AdminServices.addCategory(
-          this.categoryName,
-          this.categoryDescription
+          categoryData.categoryName,
+          categoryData.categoryDescription
         );
         const { statusCode, message } = response;
+
         if (statusCode === 201) {
           this.$emit("category-added");
           this.$emit("refresh");
@@ -113,28 +122,35 @@ export default {
           this.$toast.error(message);
         }
       } catch (error) {
-        this.$toast.error("Error al registrar la categoría");
+        this.$toast.error("Error al registrar la categoría en el servidor.");
       } finally {
         this.isLoading = false;
       }
     },
     async processPendingRequests() {
-      for (const request of this.pendingRequests) {
-        try {
-          await AdminServices.addCategory(
-            request.categoryName,
-            request.categoryDescription
-          );
-          this.$toast.success(
-            `Categoría "${request.categoryName}" registrada exitosamente.`
-          );
-        } catch (error) {
-          this.$toast.error(
-            `Error al registrar la categoría "${request.categoryName}".`
-          );
+      try {
+        const result = await window.dbPeticiones.allDocs({ include_docs: true });
+        for (const doc of result.rows) {
+          if (doc.doc.status === "pending") {
+            try {
+              await AdminServices.addCategory(
+                doc.doc.categoryName,
+                doc.doc.categoryDescription
+              );
+              await window.dbPeticiones.remove(doc.doc); // Eliminar después de sincronizar
+              this.$toast.success(
+                `Categoría "${doc.doc.categoryName}" registrada exitosamente.`
+              );
+            } catch (error) {
+              this.$toast.error(
+                `Error al registrar la categoría "${doc.doc.categoryName}".`
+              );
+            }
+          }
         }
+      } catch (error) {
+        this.$toast.error("Error al procesar las categorías pendientes.");
       }
-      this.pendingRequests = [];
     },
   },
   watch: {
@@ -143,6 +159,7 @@ export default {
     },
   },
   created() {
+    // Escuchar cambios en la conexión
     window.addEventListener("online", this.processPendingRequests);
   },
   beforeDestroy() {
@@ -150,6 +167,7 @@ export default {
   },
 };
 </script>
+
 
 
 <style scoped>
