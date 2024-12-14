@@ -8,7 +8,7 @@
         Agregar
       </Button>
     </div>
-    <AddCategoryModal :visible.sync="modalVisible" @refresh="getCategories" />
+    <AddCategoryModal :visible.sync="modalVisible" @refresh="getCategories" @category-added="addCategoryToList" />
 
     <div class="col-12">
       <div>
@@ -40,8 +40,9 @@
         </DataTable>
       </div>
     </div>
+
     <EditCategoryModal :category="selectedCategory" v-if="selectedCategory" :visible.sync="isEditModalVisible"
-      @update-category="updateCategory" @close="selectedCategory = null" />
+      @update-category="updateCategory" @close="selectedCategory = null" @category-updated="updateCategoryLocally" />
   </div>
 </template>
 
@@ -169,6 +170,25 @@ export default {
     },
     updateOnlineStatus() {
       this.isOnline = navigator.onLine;
+    },
+    addCategoryToList(newCategory) {
+      // Evitar duplicados antes de agregar
+      if (!this.categories.some(cat => cat.categoryName === newCategory.categoryName)) {
+        this.categories.push(newCategory);
+        this.$toast.success(`Categoría "${newCategory.categoryName}" agregada exitosamente.`);
+      }
+    },
+    updateCategoryLocally(updatedCategory) {
+      const index = this.categories.findIndex(
+        (cat) => cat.categoryName === updatedCategory.categoryName
+      );
+
+      if (index !== -1) {
+        this.categories[index] = { ...this.categories[index], ...updatedCategory };
+        this.$toast.success(
+          `La categoría "${updatedCategory.categoryName}" fue actualizada localmente.`
+        );
+      }
     },
   },
 

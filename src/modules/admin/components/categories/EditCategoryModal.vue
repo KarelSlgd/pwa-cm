@@ -90,11 +90,26 @@ export default {
       }
 
       if (!navigator.onLine) {
-        // Sin conexión: cerrar modal y agregar a solicitudes pendientes
+
+        window.localCategories = window.localCategories || [];
+        const index = window.localCategories.findIndex(
+          (cat) => cat.categoryName === this.localCategoryName
+        );
+
+        if (index !== -1) {
+          window.localCategories[index].categoryDescription = this.localCategoryDescription;
+        } 
+        
         this.pendingRequests.push({
           categoryName: this.localCategoryName,
           categoryDescription: this.localCategoryDescription,
         });
+
+        this.$emit("category-updated", {
+            categoryName: this.localCategoryName,
+            categoryDescription: this.localCategoryDescription,
+          });
+
         this.$toast.info(
           "Sin conexión. La categoría se actualizará automáticamente cuando vuelva la conexión."
         );

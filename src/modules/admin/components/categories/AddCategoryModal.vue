@@ -80,9 +80,16 @@ export default {
         this.isLoading = false;
         return;
       }
-
+      const newCategory = {
+        categoryName: this.categoryName,
+        categoryDescription: this.categoryDescription,
+      }
       if (!navigator.onLine) {
-        // Sin conexión: cerrar modal y agregar a solicitudes pendientes
+        window.localCategories = window.localCategories || [];
+        window.localCategories.push(newCategory);
+
+        this.$emit("category-added", newCategory);
+
         this.pendingRequests.push({
           categoryName: this.categoryName,
           categoryDescription: this.categoryDescription,
