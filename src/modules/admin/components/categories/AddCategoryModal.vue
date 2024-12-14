@@ -28,11 +28,11 @@
 </template>
 
 <script>
-import Dialog from "primevue/dialog";
-import InputText from "primevue/inputtext";
-import Textarea from "primevue/textarea";
-import Button from "primevue/button";
-import AdminServices from "@/modules/admin/services/AdminServices";
+import Dialog from 'primevue/dialog';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
+import Button from 'primevue/button';
+import AdminServices from '@/modules/admin/services/AdminServices';
 
 export default {
   components: {
@@ -50,22 +50,21 @@ export default {
   data() {
     return {
       localVisible: this.visible,
-      categoryName: "",
-      categoryDescription: "",
+      categoryName: '',
+      categoryDescription: '',
       isCategoryNameInvalid: false,
       isLoading: false,
-      pendingRequests: [],
     };
   },
   methods: {
     closeModal() {
       this.localVisible = false;
-      this.$emit("update:visible", false);
+      this.$emit('update:visible', false);
       this.resetForm();
     },
     resetForm() {
-      this.categoryName = "";
-      this.categoryDescription = "";
+      this.categoryName = '';
+      this.categoryDescription = '';
       this.isCategoryNameInvalid = false;
     },
     validateCategoryName() {
@@ -81,17 +80,27 @@ export default {
         return;
       }
 
+      const category = {
+        _id: new Date().toISOString(),
+        categoryName: this.categoryName,
+        categoryDescription: this.categoryDescription,
+        type: 'category',
+      };
+
       if (!navigator.onLine) {
-        // Sin conexión: cerrar modal y agregar a solicitudes pendientes
-        this.pendingRequests.push({
-          categoryName: this.categoryName,
-          categoryDescription: this.categoryDescription,
-        });
-        this.$toast.info(
-          "Sin conexión. La categoría se registrará automáticamente cuando vuelva la conexión."
-        );
-        this.closeModal();
-        this.isLoading = false;
+        // Sin conexión: guardar en PouchDB
+        try {
+          const db = window.dbFetchesGet; // Utiliza tu instancia existente de PouchDB
+          await db.put(category);
+          this.$toast.info(
+            'Sin conexión. La categoría se guardará y registrará automáticamente cuando vuelva la conexión.'
+          );
+          this.closeModal();
+        } catch (error) {
+          this.$toast.error('Error al guardar la categoría sin conexión.');
+        } finally {
+          this.isLoading = false;
+        }
       } else {
         // Con conexión: intentar enviar la solicitud
         this.addCategory();
@@ -105,36 +114,47 @@ export default {
         );
         const { statusCode, message } = response;
         if (statusCode === 201) {
-          this.$emit("category-added");
-          this.$emit("refresh");
+          this.$emit('category-added');
+          this.$emit('refresh');
           this.closeModal();
           this.$toast.success(message);
         } else {
           this.$toast.error(message);
         }
       } catch (error) {
-        this.$toast.error("Error al registrar la categoría");
+        this.$toast.error('Error al registrar la categoría');
       } finally {
         this.isLoading = false;
       }
     },
     async processPendingRequests() {
-      for (const request of this.pendingRequests) {
-        try {
-          await AdminServices.addCategory(
-            request.categoryName,
-            request.categoryDescription
-          );
-          this.$toast.success(
-            `Categoría "${request.categoryName}" registrada exitosamente.`
-          );
-        } catch (error) {
-          this.$toast.error(
-            `Error al registrar la categoría "${request.categoryName}".`
-          );
+      try {
+        const db = window.dbFetchesGet; // Utiliza tu instancia existente de PouchDB
+        const result = await db.allDocs({ include_docs: true });
+        const categories = result.rows
+          .filter(row => row.doc.type === 'category')
+          .map(row => row.doc);
+
+        for (const category of categories) {
+          try {
+            await AdminServices.addCategory(
+              category.categoryName,
+              category.categoryDescription
+            );
+            this.$toast.success(
+              `Categoría "${category.categoryName}" registrada exitosamente.`
+            );
+            // Eliminar categoría de PouchDB después de sincronizar
+            await db.remove(category);
+          } catch (error) {
+            this.$toast.error(
+              `Error al registrar la categoría "${category.categoryName}".`
+            );
+          }
         }
+      } catch (error) {
+        this.$toast.error('Error al procesar categorías pendientes.');
       }
-      this.pendingRequests = [];
     },
   },
   watch: {
@@ -143,14 +163,13 @@ export default {
     },
   },
   created() {
-    window.addEventListener("online", this.processPendingRequests);
+    window.addEventListener('online', this.processPendingRequests);
   },
   beforeDestroy() {
-    window.removeEventListener("online", this.processPendingRequests);
+    window.removeEventListener('online', this.processPendingRequests);
   },
 };
 </script>
-
 
 <style scoped>
 .p-error {
