@@ -202,6 +202,7 @@ export default {
         setTimeout(() => {
           this.getCategories();
         }, 2000);
+        window.location.reload()
       } else {
         this.$toast.info("Conexión perdida. Modo offline.");
       }
