@@ -54,7 +54,8 @@ export default {
       categoryDescription: "",
       isCategoryNameInvalid: false,
       isLoading: false,
-      pendingRequests: [],
+      dbPeticiones: window.dbPeticiones,
+      dbFetchesGet: window.dbFetchesGet,
     };
   },
   methods: {
@@ -82,14 +83,25 @@ export default {
       }
 
       if (!navigator.onLine) {
-        // Sin conexión: cerrar modal y agregar a solicitudes pendientes
-        this.pendingRequests.push({
-          categoryName: this.categoryName,
-          categoryDescription: this.categoryDescription,
-        });
-        this.$toast.info(
-          "Sin conexión. La categoría se registrará automáticamente cuando vuelva la conexión."
-        );
+        // Sin conexión: guardar en _pouch_peticiones
+        const offlineRequest = {
+          _id: new Date().toISOString(),
+          type: "addCategory",
+          payload: {
+            categoryName: this.categoryName,
+            categoryDescription: this.categoryDescription,
+          },
+        };
+        try {
+          await this.dbPeticiones.put(offlineRequest);
+          this.$toast.info(
+            "Sin conexión. La categoría se registrará automáticamente cuando vuelva la conexión."
+          );
+        } catch (error) {
+          this.$toast.error(
+            "Error al guardar la categoría en la base de datos local."
+          );
+        }
         this.closeModal();
         this.isLoading = false;
       } else {
@@ -119,22 +131,26 @@ export default {
       }
     },
     async processPendingRequests() {
-      for (const request of this.pendingRequests) {
-        try {
-          await AdminServices.addCategory(
-            request.categoryName,
-            request.categoryDescription
-          );
-          this.$toast.success(
-            `Categoría "${request.categoryName}" registrada exitosamente.`
-          );
-        } catch (error) {
-          this.$toast.error(
-            `Error al registrar la categoría "${request.categoryName}".`
-          );
+      const allDocs = await this.dbPeticiones.allDocs({ include_docs: true });
+      for (const doc of allDocs.rows) {
+        const { doc: request } = doc;
+        if (request.type === "addCategory") {
+          try {
+            await AdminServices.addCategory(
+              request.payload.categoryName,
+              request.payload.categoryDescription
+            );
+            this.$toast.success(
+              `Categoría "${request.payload.categoryName}" registrada exitosamente.`
+            );
+            await this.dbPeticiones.remove(request); // Eliminar después de procesar
+          } catch (error) {
+            this.$toast.error(
+              `Error al registrar la categoría "${request.payload.categoryName}".`
+            );
+          }
         }
       }
-      this.pendingRequests = [];
     },
   },
   watch: {
@@ -149,6 +165,7 @@ export default {
     window.removeEventListener("online", this.processPendingRequests);
   },
 };
+
 </script>
 
 
