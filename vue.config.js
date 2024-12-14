@@ -1,36 +1,36 @@
-const { defineConfig } = require('@vue/cli-service')
+const { defineConfig } = require('@vue/cli-service');
+
 module.exports = defineConfig({
   transpileDependencies: true,
   devServer: {
-    port: 4200,
+    port: 4200, // Puerto de desarrollo
   },
   pwa: {
-    workboxPluginMode: 'GenerateSW',
+    workboxPluginMode: 'GenerateSW', // Generar Service Worker automáticamente
     workboxOptions: {
       runtimeCaching: [
         {
-          urlPattern: new RegExp('^https://www.energiasustentable.study:8443/api/'),
-          handler: 'NetworkFirst',
+          urlPattern: new RegExp('^https://www.energiasustentable.study:8443/api/'), // API dinámica
+          handler: 'StaleWhileRevalidate', // Caché dinámico
           options: {
-            cacheName: 'api-category-cache',
-            networkTimeoutSeconds: 50, // Tiempo de espera para la red
+            cacheName: 'api-dynamic-cache',
             expiration: {
               maxEntries: 50, // Máximo de entradas en caché
-              maxAgeSeconds: 7 * 24 * 60 * 60, // 1 semana
+              maxAgeSeconds: 7 * 24 * 60 * 60, // Tiempo de vida de 7 días
             },
             cacheableResponse: {
-              statuses: [0, 500], // Respuestas cacheables
+              statuses: [0, 200], // Cachear solo respuestas exitosas
             },
           },
         },
         {
-          urlPattern: new RegExp('^.*\\.(js|css|html|png|jpg|jpeg|svg|gif|ico|woff|woff2)$'),
-          handler: 'CacheFirst',
+          urlPattern: new RegExp('^.*\\.(js|css|html|png|jpg|jpeg|svg|gif|ico|woff|woff2)$'), // Archivos estáticos
+          handler: 'CacheFirst', // Archivos estáticos primero desde el caché
           options: {
             cacheName: 'static-assets-cache',
             expiration: {
-              maxEntries: 50,
-              maxAgeSeconds: 30 * 24 * 60 * 60,
+              maxEntries: 100, // Máximo de entradas en caché
+              maxAgeSeconds: 30 * 24 * 60 * 60, // Tiempo de vida de 30 días
             },
             cacheableResponse: {
               statuses: [0, 200],
@@ -40,4 +40,4 @@ module.exports = defineConfig({
       ],
     },
   },
-})
+});

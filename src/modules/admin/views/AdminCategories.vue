@@ -143,7 +143,8 @@ export default {
     },
     async deleteCategory(name, status) {
       if (!navigator.onLine) {
-        // Sin conexión: almacenar la solicitud pendiente
+        const categoryIndex = this.categories.findIndex(cat => cat.categoryName === name);
+        this.categories.splice(categoryIndex, 1);       
         this.pendingRequests.push({
           action: "deleteCategory",
           data: { name, status },
