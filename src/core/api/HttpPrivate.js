@@ -43,18 +43,12 @@ client.interceptors.response.use(
 );
 
 // Función para manejar conflictos en PouchDB
-const handleConflict = async (docId, newDoc) => {
+const handleConflict = async ( docId, newDoc) => {
   try {
     const existingDoc = await dbPeticiones.get(docId);
     const mergedDoc = { ...existingDoc, ...newDoc }; // Fusión de datos
     await dbPeticiones.put(mergedDoc);
     console.log("Conflicto resuelto y documento actualizado:", docId);
-
-    // Actualizar el caché de fetch
-    const fetchDoc = await dbFetchesGet.get(docId);
-    const updatedFetchDoc = { ...fetchDoc, ...newDoc };
-    await dbFetchesGet.put(updatedFetchDoc);
-    console.log("Caché de fetch actualizado:", docId);
   } catch (error) {
     console.error("Error al resolver conflicto:", error);
   }
@@ -72,14 +66,6 @@ const cacheRequest = async (method, endPoint, data = null, config = {}) => {
   try {
     await dbPeticiones.put(request);
     console.log(`Petición ${method.toUpperCase()} almacenada en caché.`);
-
-    // Agregar nuevos datos al caché de fetch
-    if (method === "post") {
-      const fetchDoc = await dbFetchesGet.get(endPoint);
-      const updatedFetchDoc = { ...fetchDoc, data: [...fetchDoc.data, data] };
-      await dbFetchesGet.put(updatedFetchDoc);
-      console.log("Nuevo dato agregado al caché de fetch:", endPoint);
-    } 
   } catch (error) {
     if (error.status === 409) {
       console.warn("Conflicto detectado al guardar la petición. Resolviendo...");
@@ -89,6 +75,7 @@ const cacheRequest = async (method, endPoint, data = null, config = {}) => {
     }
   }
 };
+
 // Función para reenviar peticiones pendientes
 export const sendPendingRequests = async () => {
   try {
@@ -131,40 +118,36 @@ export const sendPendingRequests = async () => {
 // Función para manejar GET con caché
 const handleGetRequest = async (endPoint, config) => {
   try {
+    // Intentar obtener la respuesta del Service Worker o red
     const response = await client.get(endPoint, config);
 
+    // Guardar la respuesta en PouchDB para un respaldo local
     const fetch = {
       _id: endPoint,
       response: response.data,
-      timestamp: new Date().toISOString(), // Agregar un timestamp
+      timestamp: new Date().toISOString(),
     };
 
     try {
       await dbFetchesGet.put(fetch);
     } catch (error) {
       if (error.status === 409) {
-        await handleConflict( fetch._id, fetch);
+        await handleConflict(fetch._id, fetch);
       } else {
-        console.error("Error al guardar la respuesta en caché:", error);
+        console.error("Error al guardar la respuesta en PouchDB:", error);
       }
     }
+
     return response;
   } catch (error) {
     if (!navigator.onLine) {
+      // Modo offline: devolver la respuesta desde PouchDB si existe
       try {
-        const fetch = await dbFetchesGet.get(endPoint);
-        console.log("Respuesta obtenida de la caché:", fetch.response);
-
-        return { data: fetch.response };
+        const cachedFetch = await dbFetchesGet.get(endPoint);
+        console.log("Respuesta obtenida de PouchDB:", cachedFetch.response);
+        return { data: cachedFetch.response };
       } catch (fetchError) {
-        if (fetchError.status === 404) {
-          console.error("No se encontró la respuesta en caché:", fetchError);
-        } else {
-          console.error(
-            "Error al obtener la respuesta de la caché:",
-            fetchError
-          );
-        }
+        console.error("Error al obtener respuesta de PouchDB:", fetchError);
       }
     }
     return Promise.reject(error);
