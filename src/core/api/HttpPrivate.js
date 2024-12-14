@@ -153,7 +153,6 @@ export const sendPendingRequests = async () => {
         console.error("Error al reenviar la petición:", error);
       }
     }
-    window.location.reload()
   } catch (error) {
     console.error("Error al procesar peticiones pendientes:", error);
   }

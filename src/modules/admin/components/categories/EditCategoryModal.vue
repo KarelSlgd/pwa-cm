@@ -90,6 +90,7 @@ export default {
       }
 
       if (!navigator.onLine) {
+        this.$toast.success(message);
 
         window.localCategories = window.localCategories || [];
         const index = window.localCategories.findIndex(

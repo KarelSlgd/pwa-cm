@@ -85,6 +85,8 @@ export default {
         categoryDescription: this.categoryDescription,
       }
       if (!navigator.onLine) {
+        window.location.reload()
+
         window.localCategories = window.localCategories || [];
         window.localCategories.push(newCategory);
 
